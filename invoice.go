@@ -15,3 +15,17 @@ func (c *Client) CreateInvoice(params dto.CreateInvoiceParams) (
 
 	return
 }
+
+func (c *Client) GetInvoice(customerCode, documentID string) (
+	pdf []byte,
+	err error,
+) {
+	resp, err := c.resty.R().
+		SetPathParams(map[string]string{
+			"customerCode": customerCode,
+			"documentId":   documentID,
+		}).
+		Get("/invoice/{apiVersion}/bills/{customerCode}/{documentId}/file")
+
+	return resp.Body(), err
+}

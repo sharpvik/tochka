@@ -1,22 +1,29 @@
 package tochka_test
 
 import (
-	"net/http"
-	"strconv"
+	"os"
 	"testing"
 
 	"github.com/sharpvik/tochka"
 	"github.com/sharpvik/tochka/dto"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestCreateInvoice(t *testing.T) {
+const (
+	customerCode     = "customerCode"
+	accountID        = "accountID"
+	oooYandexTaxCode = "7736207543"
+	oooYandexKPP     = "770401001"
+)
+
+func TestCreateAndGetInvoice(t *testing.T) {
 	params := dto.CreateInvoiceParams{
 		Data: dto.CreateInvoiceData{
-			CustomerCode: "CustomerCode",
-			AccountID:    "AccountID",
+			CustomerCode: customerCode,
+			AccountID:    accountID,
 			SecondSide: dto.CreateInvoiceSecondSide{
-				TaxCode: "TaxCode",
+				TaxCode: oooYandexTaxCode,
+				KPP:     oooYandexKPP,
 				Type:    dto.CompanyTypeCompany,
 			},
 			Content: dto.CreateInvoiceContent{
@@ -38,11 +45,18 @@ func TestCreateInvoice(t *testing.T) {
 		},
 	}
 
-	_, err := tochka.Sandbox().CreateInvoice(params)
-	assert.Error(t, err)
-	t.Log(err)
+	sandbox := tochka.Sandbox()
 
-	result, ok := err.(*dto.ErrorResult)
-	assert.True(t, ok)
-	assert.Equal(t, strconv.Itoa(http.StatusBadRequest), result.Code)
+	result, err := sandbox.CreateInvoice(params)
+	require.NoError(t, err)
+
+	documentID := result.Data.DocumentID
+	t.Log("DocumentID:", documentID)
+
+	pdf, err := sandbox.GetInvoice(customerCode, documentID)
+	require.NoError(t, err)
+	file, err := os.Create("invoice.pdf")
+	require.NoError(t, err)
+	_, err = file.Write(pdf)
+	require.NoError(t, err)
 }
