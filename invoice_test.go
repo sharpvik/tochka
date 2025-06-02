@@ -4,17 +4,21 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/sharpvik/tochka"
 	"github.com/sharpvik/tochka/dto"
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	customerCode     = "customerCode"
-	accountID        = "accountID"
+const (
 	oooYandexTaxCode = "7736207543"
 	oooYandexKPP     = "770401001"
+)
+
+var (
+	config  tochka.Config
+	sandbox *tochka.Client
 )
 
 func init() {
@@ -22,93 +26,54 @@ func init() {
 		panic(err)
 	}
 
-	customerCode = os.Getenv("CUSTOMER_CODE")
-	accountID = os.Getenv("ACCOUNT_ID")
+	config = tochka.Config{
+		CustomerCode: os.Getenv("CUSTOMER_CODE"),
+		AccountID:    os.Getenv("ACCOUNT_ID"),
+	}
+
+	sandbox = tochka.Sandbox(config)
 }
 
-func TestCreateAndGetInvoice(t *testing.T) {
-	params := dto.CreateInvoiceParams{
-		Data: dto.CreateInvoiceData{
-			CustomerCode: customerCode,
-			AccountID:    accountID,
-			SecondSide: dto.CreateInvoiceSecondSide{
-				TaxCode: oooYandexTaxCode,
-				KPP:     oooYandexKPP,
-				Type:    dto.CompanyTypeCompany,
-			},
-			Content: dto.CreateInvoiceContent{
-				Invoice: dto.CreateInvoiceInvoice{
-					Number:      dto.Natural(1),
-					TotalAmount: dto.KopeksFromRub(420),
-					Positions: []dto.CreateInvoicePosition{
-						{
-							PositionName: "PositionName",
-							UnitCode:     dto.Units,
-							NDSKind:      dto.WithoutNDS,
-							Price:        dto.KopeksFromRub(1),
-							Quantity:     dto.Quantity(420.00),
-							TotalAmount:  dto.KopeksFromRub(420),
-						},
+func TestCreateInvoice(t *testing.T) {
+	params := dto.CreateInvoiceData{
+		SecondSide: dto.CreateInvoiceSecondSide{
+			TaxCode: oooYandexTaxCode,
+			KPP:     oooYandexKPP,
+			Type:    dto.CompanyTypeCompany,
+		},
+		Content: dto.CreateInvoiceContent{
+			Invoice: dto.CreateInvoiceInvoice{
+				Number:      dto.Natural(1),
+				TotalAmount: dto.KopeksFromRub(420),
+				Positions: []dto.CreateInvoicePosition{
+					{
+						PositionName: "PositionName",
+						UnitCode:     dto.Units,
+						NDSKind:      dto.WithoutNDS,
+						Price:        dto.KopeksFromRub(1),
+						Quantity:     dto.Quantity(420.00),
+						TotalAmount:  dto.KopeksFromRub(420),
 					},
 				},
 			},
 		},
 	}
 
-	sandbox := tochka.Sandbox()
-
 	result, err := sandbox.CreateInvoice(params)
 	require.NoError(t, err)
+	require.NotEmpty(t, result.Data.DocumentID)
+}
 
-	documentID := result.Data.DocumentID
-
-	pdf, err := sandbox.GetInvoice(customerCode, documentID)
+func TestGetInvoice(t *testing.T) {
+	documentID := uuid.NewString()
+	pdf, err := sandbox.GetInvoice(documentID)
 	require.NoError(t, err)
 	require.NotEmpty(t, pdf)
-
-	// file, err := os.Create("invoice.pdf")
-	// require.NoError(t, err)
-	// _, err = file.Write(pdf)
-	// require.NoError(t, err)
 }
 
-func TestCreateInvoiceAndGetItsPaymentStatus(t *testing.T) {
-	params := dto.CreateInvoiceParams{
-		Data: dto.CreateInvoiceData{
-			CustomerCode: customerCode,
-			AccountID:    accountID,
-			SecondSide: dto.CreateInvoiceSecondSide{
-				TaxCode: oooYandexTaxCode,
-				KPP:     oooYandexKPP,
-				Type:    dto.CompanyTypeCompany,
-			},
-			Content: dto.CreateInvoiceContent{
-				Invoice: dto.CreateInvoiceInvoice{
-					Number:      dto.Natural(1),
-					TotalAmount: dto.KopeksFromRub(420),
-					Positions: []dto.CreateInvoicePosition{
-						{
-							PositionName: "PositionName",
-							UnitCode:     dto.Units,
-							NDSKind:      dto.WithoutNDS,
-							Price:        dto.KopeksFromRub(1),
-							Quantity:     dto.Quantity(420.00),
-							TotalAmount:  dto.KopeksFromRub(420),
-						},
-					},
-				},
-			},
-		},
-	}
-
-	sandbox := tochka.Sandbox()
-
-	result, err := sandbox.CreateInvoice(params)
-	require.NoError(t, err)
-
-	documentID := result.Data.DocumentID
-
-	status, err := sandbox.GetInvoicePaymentStatus(customerCode, documentID)
+func TestGetInvoicePaymentStatus(t *testing.T) {
+	documentID := uuid.NewString()
+	status, err := sandbox.GetInvoicePaymentStatus(documentID)
 	require.NoError(t, err)
 	require.Equal(t, dto.PaymentWaiting, status.Data.PaymentStatus)
 }

@@ -4,10 +4,20 @@ import (
 	"github.com/sharpvik/tochka/dto"
 )
 
-func (c *Client) CreateInvoice(params dto.CreateInvoiceParams) (
+func (c *Client) CreateInvoice(data dto.CreateInvoiceData) (
 	result dto.CreateInvoiceResult,
 	err error,
 ) {
+	if data.AccountID == "" {
+		data.AccountID = c.config.AccountID
+	}
+
+	if data.CustomerCode == "" {
+		data.CustomerCode = c.config.CustomerCode
+	}
+
+	params := dto.CreateInvoiceParams{Data: data}
+
 	_, err = c.resty.R().
 		SetBody(&params).
 		SetResult(&result).
@@ -16,29 +26,23 @@ func (c *Client) CreateInvoice(params dto.CreateInvoiceParams) (
 	return result, err
 }
 
-func (c *Client) GetInvoice(customerCode, documentID string) (
+func (c *Client) GetInvoice(documentID string) (
 	pdf []byte,
 	err error,
 ) {
 	resp, err := c.resty.R().
-		SetPathParams(map[string]string{
-			"customerCode": customerCode,
-			"documentId":   documentID,
-		}).
+		SetPathParam("documentId", documentID).
 		Get("/invoice/{apiVersion}/bills/{customerCode}/{documentId}/file")
 
 	return resp.Body(), err
 }
 
-func (c *Client) GetInvoicePaymentStatus(customerCode, documentID string) (
+func (c *Client) GetInvoicePaymentStatus(documentID string) (
 	result dto.GetInvoicePaymentStatusResult,
 	err error,
 ) {
 	_, err = c.resty.R().
-		SetPathParams(map[string]string{
-			"customerCode": customerCode,
-			"documentId":   documentID,
-		}).
+		SetPathParam("documentId", documentID).
 		SetResult(&result).
 		Get("invoice/{apiVersion}/bills/{customerCode}/{documentId}/payment-status")
 

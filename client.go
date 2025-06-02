@@ -8,18 +8,34 @@ import (
 )
 
 type Client struct {
-	resty *resty.Client
+	config *Config
+	resty  *resty.Client
 }
 
-func Live(token, clientID string) *Client {
-	return &Client{
-		resty: rest(ProdURL, token).SetPathParam("clientId", clientID),
-	}
+type Config struct {
+	Token        string
+	ClientID     string
+	CustomerCode string
+	AccountID    string
 }
 
-func Sandbox() *Client {
+func Live(config Config) *Client {
+	return New(config, ProdURL)
+}
+
+func Sandbox(config Config) *Client {
+	config.Token = SandboxToken
+	return New(config, SandboxURL)
+}
+
+func New(config Config, url string) *Client {
 	return &Client{
-		resty: rest(SandboxURL, SandboxToken),
+		config: &config,
+		resty: rest(url, config.Token).
+			SetPathParams(map[string]string{
+				"clientId":     config.ClientID,
+				"customerCode": config.CustomerCode,
+			}),
 	}
 }
 
