@@ -1,5 +1,10 @@
 package dto
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 type CreateInvoiceParams DataParams[CreateInvoiceData]
 
 type CreateInvoiceData struct {
@@ -55,4 +60,46 @@ type CreateInvoiceResult struct {
 	Meta struct {
 		TotalPages int `json:"totalPages"`
 	} `json:"Meta"`
+}
+
+type GetInvoicePaymentStatusResult struct {
+	Data struct {
+		PaymentStatus PaymentStatus `json:"paymentStatus"`
+	} `json:"Data"`
+	Links struct {
+		Self string `json:"self"`
+	} `json:"Links"`
+	Meta struct {
+		TotalPages int `json:"totalPages"`
+	} `json:"Meta"`
+}
+
+type PaymentStatus string
+
+const (
+	PaymentWaiting PaymentStatus = "payment_waiting"
+	PaymentExpired PaymentStatus = "payment_expired"
+	PaymentPaid    PaymentStatus = "payment_paid"
+)
+
+var stringToPaymentStatusMap = map[string]PaymentStatus{
+	"payment_waiting": PaymentWaiting,
+	"payment_expired": PaymentExpired,
+	"payment_paid":    PaymentPaid,
+}
+
+func (status *PaymentStatus) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return fmt.Errorf("failed to unmarshal PaymentStatus: %v", err)
+	}
+
+	mapped, found := stringToPaymentStatusMap[s]
+	if !found {
+		return fmt.Errorf("unknown string when unmarshaling PaymentStatus: %s", s)
+	}
+
+	*status = mapped
+
+	return nil
 }
