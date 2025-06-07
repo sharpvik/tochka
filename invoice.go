@@ -26,7 +26,7 @@ func (c *Client) CreateInvoice(data dto.CreateInvoiceData) (
 	return result, err
 }
 
-func (c *Client) GetInvoice(documentID string) (
+func (c *Client) GetInvoicePDF(documentID string) (
 	pdf []byte,
 	err error,
 ) {
@@ -44,7 +44,7 @@ func (c *Client) GetInvoicePaymentStatus(documentID string) (
 	_, err = c.resty.R().
 		SetPathParam("documentId", documentID).
 		SetResult(&result).
-		Get("invoice/{apiVersion}/bills/{customerCode}/{documentId}/payment-status")
+		Get("/invoice/{apiVersion}/bills/{customerCode}/{documentId}/payment-status")
 
 	return result, err
 }

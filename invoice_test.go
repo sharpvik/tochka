@@ -66,7 +66,7 @@ func TestCreateInvoice(t *testing.T) {
 
 func TestGetInvoice(t *testing.T) {
 	documentID := uuid.NewString()
-	pdf, err := sandbox.GetInvoice(documentID)
+	pdf, err := sandbox.GetInvoicePDF(documentID)
 	require.NoError(t, err)
 	require.NotEmpty(t, pdf)
 }
