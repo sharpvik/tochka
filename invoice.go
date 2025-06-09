@@ -52,7 +52,7 @@ func (c *Client) GetInvoicePaymentStatus(documentID string) (
 func (c *Client) DeleteInvoice(documentID string) (err error) {
 	_, err = c.resty.R().
 		SetPathParam("documentId", documentID).
-		Get("/invoice/{apiVersion}/bills/{customerCode}/{documentId}")
+		Delete("/invoice/{apiVersion}/bills/{customerCode}/{documentId}")
 
 	return err
 }
